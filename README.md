@@ -17,7 +17,6 @@ Final Descent: Drops to 1 meter, pauses, and lands.
 Cleanup: Disconnects from the drone.
 Key Notes • Timeouts: Each major operation (stabilization, rotation, movement) has a timeout to prevent infinite loops (30–60 seconds). • Dynamic Speed: Forward speed decreases as the drone approaches the target, ensuring a smooth stop. • Safety: The script includes error checks and lands the drone if anything fails. • Units: Distance is calculated in GPS coordinate units and roughly converted to meters for display (multiplied by 100,000).
 
-Example Output • "🔗 Connected to drone successfully" • "🚀 Attempting takeoff... 🛫 Result: success" • "🛰 Current altitude: 1.95 meters" • "✅ Stabilized at 2 meters" • "📐 Bearing to target: 45.32 degrees" • "✅ Facing target" • "➡️ Moving toward target" • "Distance to target: 5.23 meters, Current altitude: 2.01 meters" • "✅ Stopped 1.98 meters from target" • "⬇️ Descending to 1 meter" • "🛬 Landing..."
 
 This script provides a robust framework for autonomous drone navigation, with emphasis on stability, precision, and error handling.
 
