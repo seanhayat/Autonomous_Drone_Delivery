@@ -1,82 +1,113 @@
-# Autonomous Drone Delivery
+import os
+import numpy as np
+import pandas as pd
+import matplotlib.pyplot as plt
 
-### Overview
+# Create directory to save results
+save_dir = "flight_results"
+os.makedirs(save_dir, exist_ok=True)
 
-This project enables autonomous flight of two drones carrying a rigid payload (simulating a pizza tray). The system integrates hardware and software to achieve coordinated, autonomous navigation, leveraging Python-based control, real-time sensor data, and a mobile interface to communicate with the drones.
+# Parameters
+initial_distance = 23  # meters
+initial_yaw = -55.0  # starting yaw angle
+target_yaw = -135.0  # target yaw angle
+cruise_altitude = 2.0  # meters
+final_altitude = 1.0  # meters
 
-### Prerequisites & Setup
+drone_mass = 0.249  # kg (DJI Mini 3 Pro)
+payload_mass = 0.01  # kg (10g payload)
+total_mass = drone_mass + payload_mass
+g = 9.81  # m/s² gravity
+thrust_correction = total_mass / drone_mass  # factor to adjust thrust
 
-Before using this project, you must follow the setup instructions detailed in the previous work that enables PC-to-drone communication: https://github.com/Penkov-D/DJI-MSDK-to-PC
+drag_coefficient = 1.2
+air_density = 1.225  # kg/m³
+frontal_area = (9 * 3) / 10000  # converting cm² to m²
 
+# Simulation time
+sim_duration = 120  # seconds
+num_points = 500
 
-#### Setup Instructions
+time_intervals = np.linspace(0, sim_duration, num=num_points)
 
-These steps include:
+takeoff_phase = int(num_points * 0.2)
+yaw_correction_phase = int(num_points * 0.2)
+flight_phase = int(num_points * 0.5)
+landing_phase = num_points - (takeoff_phase + yaw_correction_phase + flight_phase)
 
-*  Installing the DJI Mobile SDK on an Android device.
-*  Setting up the PC-to-phone connection for drone control.
-*  Running the necessary services to enable Python-based communication with the drone.
+# Adjusted Altitude Control with Increased Thrust
+altitudes = np.linspace(0, cruise_altitude * thrust_correction, num=takeoff_phase)
+altitudes = np.append(altitudes, np.full(yaw_correction_phase, cruise_altitude * thrust_correction))
 
+yaw_values = np.full(num_points, initial_yaw)
+yaw_error_values = np.full(num_points, (target_yaw - initial_yaw + 180) % 360 - 180)
+current_yaw = initial_yaw
 
-#### System Architecture
-The system consists of the following components:
+for i in range(takeoff_phase, takeoff_phase + yaw_correction_phase):
+    yaw_error = (target_yaw - current_yaw + 180) % 360 - 180
+    yaw_adjustment = np.sign(yaw_error) * min(abs(yaw_error) * 0.1, 2.5)  # reduced due to added inertia
+    current_yaw += yaw_adjustment + np.random.normal(0, 0.1)
+    current_yaw = (current_yaw + 180) % 360 - 180
 
-*  Drones (DJI Mini 3 Pro x2): Receives flight commands and provides sensor data.
-*  Mobile Phone (Custom Android App): Acts as a bridge between the laptop and drones.
-*  Laptop (Python Code): Executes autonomous flight control and processes sensor feedback.
+    yaw_values[i] = current_yaw
+    yaw_error_values[i] = yaw_error
 
-#### Features
-*  Autonomous Flight – Executes predefined flight plans.
-*  Dual-Drone Coordination – Ensures stability while carrying a shared payload.
-*  Real-time Sensor Data Processing – Utilizes GPS, IMU, and vision sensors for accurate navigation.
-*  Python-Based Control – Uses a custom Python script to send commands and receive telemetry data.
-*  PC-to-Drone Communication – Relies on an Android app to act as a communication relay.
+altitudes = np.append(altitudes, np.full(flight_phase, cruise_altitude * thrust_correction))
+yaw_values[takeoff_phase + yaw_correction_phase:] = target_yaw
+yaw_error_values[takeoff_phase + yaw_correction_phase:] = 0
 
-#### Installation & Usage
-##### 1. Setup Communication System
-Follow the prerequisites setup guide linked above. Ensure that:
-*  Your Android device has the necessary app installed.
-*  The PC is connected to the phone and can communicate with the drones.
-   
-##### 2. Clone the Repository
+# Dynamic Speed Adjustment Considering Drag
+base_speeds = np.linspace(initial_distance, 0, num=flight_phase)
+drag_reduction = np.exp(-drag_coefficient * air_density * frontal_area * base_speeds)
+distances = np.full(takeoff_phase + yaw_correction_phase, initial_distance)
+distances = np.append(distances, base_speeds * drag_reduction)
+distances = np.append(distances, np.full(landing_phase, 0))
 
-```xml
-git clone https://github.com/your-username/Autonomous_Drone_Delivery.git
-cd Autonomous_Drone_Delivery
-```
+altitudes = np.append(altitudes, np.linspace(cruise_altitude * thrust_correction, final_altitude, num=landing_phase))
 
-##### 3. Install Dependencies
-Ensure you have Python installed, then install required dependencies:
+sim_data_final = pd.DataFrame({
+    "Time (s)": time_intervals,
+    "Altitude (m)": altitudes,
+    "Distance to Target (m)": distances,
+    "Yaw (degrees)": yaw_values,
+    "Yaw Error (degrees)": yaw_error_values
+})
 
-```xml
-pip install -r requirements.txt
-```
+final_csv_path = os.path.join(save_dir, "simulated_flight_data_payload.csv")
+sim_data_final.to_csv(final_csv_path, index=False)
 
-##### 4. Run the Autonomous Flight Script
-Execute the main Python script to start the autonomous flight:
+plt.figure(figsize=(12, 8))
 
-```xml
-python main.py
-```
+plt.subplot(4, 1, 1)
+plt.plot(time_intervals, altitudes, label="Altitude")
+plt.axhline(cruise_altitude, color='g', linestyle='--', label="Cruise Altitude (2m)")
+plt.axhline(final_altitude, color='r', linestyle='--', label="Landing Altitude (1m)")
+plt.ylabel("Altitude (m)")
+plt.legend()
 
+plt.subplot(4, 1, 2)
+plt.plot(time_intervals, distances, label="Distance to Target")
+plt.axhline(0, color='r', linestyle='--', label="Target Reached")
+plt.ylabel("Distance (m)")
+plt.legend()
 
-#### Technologies Used
-*  Python – Main control logic and communication.
-*  DJI Mobile SDK – Enables connection to the drones via Android.
-*  OpenCV & NumPy – Used for sensor data processing (if applicable).
+plt.subplot(4, 1, 3)
+plt.plot(time_intervals, yaw_values, label="Yaw Angle")
+plt.axhline(target_yaw, color='r', linestyle='--', label="Target Yaw (-135°)")
+plt.ylabel("Yaw (degrees)")
+plt.legend()
 
+plt.subplot(4, 1, 4)
+plt.plot(time_intervals, yaw_error_values, label="Yaw Error")
+plt.axhline(0, color='r', linestyle='--', label="Zero Error")
+plt.ylabel("Yaw Error (degrees)")
+plt.xlabel("Time (s)")
+plt.legend()
 
-#### Contributing
-If you'd like to contribute, feel free to fork the repository, submit pull requests, or report issues.
+plt.tight_layout()
 
-#### License
-This project is licensed under the MIT License.
+final_plot_path = os.path.join(save_dir, "simulated_flight_plot_payload.png")
+plt.savefig(final_plot_path)
+plt.close()
 
-#### Acknowledgments
-This project is inspired by previous work on PC-to-Drone communication: [DJI-MSDK-to-PC](https://github.com/Penkov-D/DJI-MSDK-to-PC). <br>
-
-
-
-
-
-
+print(f"✅ Updated simulation with payload effects saved in: {save_dir}")
