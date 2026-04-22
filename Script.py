@@ -1,4 +1,3 @@
-
 import time
 import cv2
 import numpy as np
@@ -66,7 +65,7 @@ class LocationListener(EventListener):
     def onValue(self, value):
         global current_data, filtered_altitude, start_time
         if value == "null":
-            print("⚠️ נתוני מיקום חסרים")
+            print("נתוני מיקום חסרים")
             return
         try:
             match = LOCATION_PATTERN.fullmatch(value)
@@ -83,20 +82,20 @@ class LocationListener(EventListener):
                                          (TARGET_LON - current_data["longitude"])**2) * 100000
                     distances.append(distance)
         except ValueError:
-            print(f"⚠️ שגיאה בניתוח מיקום: {value}")
+            print(f"שגיאה בניתוח מיקום: {value}")
 
 class YawListener(EventListener):
     def onValue(self, value):
         global current_data, start_time
         if value == "null":
-            print("⚠️ נתוני Yaw חסרים")
+            print("נתוני Yaw חסרים")
             return
         try:
             current_data["yaw"] = float(value)
             if start_time > 0:
                 yaws.append(current_data["yaw"])
         except ValueError:
-            print(f"⚠️ שגיאה בניתוח Yaw: {value}")
+            print(f"שגיאה בניתוח Yaw: {value}")
 
 # חישוב זווית ליעד
 def calculate_bearing(lat1, lon1, lat2, lon2):
@@ -113,14 +112,14 @@ def connect_and_takeoff():
     try:
         drone = OpenDJI(DRONE_IP)
         drone.__enter__()
-        print("🔗 מחובר לרחפן בהצלחה")
+        print("מחובר לרחפן בהצלחה")
         time.sleep(1)
 
-        print("🚀 מנסה להמריא...")
+        print("מנסה להמריא...")
         result = drone.takeoff(True)
-        print(f"🛫 תוצאה: {result}")
+        print(f"תוצאה: {result}")
         if "success" not in result.lower():
-            print("❌ ההמראה נכשלה!")
+            print("ההמראה נכשלה!")
             drone.__exit__(None, None, None)
             return None
         
@@ -130,11 +129,11 @@ def connect_and_takeoff():
         time.sleep(1)
         
         drone.enableControl(True)
-        print("🎮 שליטה מלאה הופעלה לאחר התייצבות הרחפן")
+        print("שליטה מלאה הופעלה לאחר התייצבות הרחפן")
         start_time = time.time()
         return drone
     except Exception as e:
-        print(f"❌ שגיאה בחיבור או המראה: {e}")
+        print(f"שגיאה בחיבור או המראה: {e}")
         return None
 
 # שליטה בגובה עם PID וטיפול בשגיאות חיבור
@@ -146,18 +145,18 @@ def altitude_control_with_pid(drone, target_altitude):
     max_retries = 3
     while not stabilized:
         if time.time() - local_start_time > 30:
-            print("❌ לא הצליח להתייצב בגובה היעד תוך זמן סביר!")
+            print("לא הצליח להתייצב בגובה היעד תוך זמן סביר!")
             return False
-        print(f"🛰 גובה נוכחי: {current_data['altitude']:.2f} מטרים")
+        print(f"גובה נוכחי: {current_data['altitude']:.2f} מטרים")
         du = pid.update(current_data["altitude"])
         try:
             drone.move(0.0, du, 0.0, 0.0)
             retries = 0
         except ConnectionAbortedError as e:
-            print(f"⚠️ שגיאת חיבור: {e}")
+            print(f"שגיאת חיבור: {e}")
             retries += 1
             if retries >= max_retries:
-                print("❌ יותר מדי ניסיונות כושלים, הסקריפט נעצר.")
+                print("יותר מדי ניסיונות כושלים, הסקריפט נעצר.")
                 return False
             print(f"מנסה שוב ({retries}/{max_retries})...")
             time.sleep(1)
@@ -165,26 +164,26 @@ def altitude_control_with_pid(drone, target_altitude):
         time.sleep(0.03)
         if abs(current_data["altitude"] - target_altitude) < 0.05:
             stabilized = True
-    print(f"✅ התייצב בגובה {target_altitude} מטר")
+    print(f"התייצב בגובה {target_altitude} מטר")
     for _ in range(20):
         du = pid.update(current_data["altitude"])
         try:
             drone.move(0.0, du, 0.0, 0.0)
         except ConnectionAbortedError as e:
-            print(f"⚠️ שגיאת חיבור במהלך יציבות: {e}")
+            print(f"שגיאת חיבור במהלך יציבות: {e}")
             return False
         time.sleep(0.03)
     return True
 
 # סיבוב לכיוון היעד
 def rotate_to_target(drone, target_yaw):
-    print(f"🔄 מסובב לכיוון {target_yaw:.2f} מעלות")
+    print(f"מסובב לכיוון {target_yaw:.2f} מעלות")
     local_start_time = time.time()
     retries = 0
     max_retries = 3
     while True:
         if time.time() - local_start_time > 30:
-            print("❌ לא הצליח לסובב לכיוון היעד תוך זמן סביר!")
+            print("לא הצליח לסובב לכיוון היעד תוך זמן סביר!")
             return False
         current_yaw = current_data["yaw"]
         error = (target_yaw - current_yaw + 180) % 360 - 180
@@ -195,10 +194,10 @@ def rotate_to_target(drone, target_yaw):
             drone.move(rcw, 0.0, 0.0, 0.0)
             retries = 0
         except ConnectionAbortedError as e:
-            print(f"⚠️ שגיאת חיבור: {e}")
+            print(f"שגיאת חיבור: {e}")
             retries += 1
             if retries >= max_retries:
-                print("❌ יותר מדי ניסיונות כושלים, הסקריפט נעצר.")
+                print("יותר מדי ניסיונות כושלים, הסקריפט נעצר.")
                 return False
             print(f"מנסה שוב ({retries}/{max_retries})...")
             time.sleep(1)
@@ -207,21 +206,21 @@ def rotate_to_target(drone, target_yaw):
     try:
         drone.move(0.0, 0.0, 0.0, 0.0)
     except ConnectionAbortedError as e:
-        print(f"⚠️ שגיאת חיבור בעת עצירה: {e}")
+        print(f"שגיאת חיבור בעת עצירה: {e}")
         return False
-    print("✅ פונה לכיוון היעד")
+    print("פונה לכיוון היעד")
     return True
 
 # תנועה ליעד
 def move_to_target(drone, target_lat, target_lon):
     pid = PIDController(Kp=0.2, Ki=0.02, Kd=1.0, target=2.0)
-    print("➡️ נע לעבר היעד")
+    print("נע לעבר היעד")
     local_start_time = time.time()
     retries = 0
     max_retries = 3
     while True:
         if time.time() - local_start_time > 60:
-            print("❌ לא הצליח להגיע ליעד תוך זמן סביר!")
+            print("לא הצליח להגיע ליעד תוך זמן סביר!")
             return False
         distance = math.sqrt((target_lat - current_data["latitude"])**2 + 
                              (target_lon - current_data["longitude"])**2)
@@ -238,10 +237,10 @@ def move_to_target(drone, target_lat, target_lon):
             drone.move(rcw, du, 0.0, speed)
             retries = 0
         except ConnectionAbortedError as e:
-            print(f"⚠️ שגיאת חיבור: {e}")
+            print(f"שגיאת חיבור: {e}")
             retries += 1
             if retries >= max_retries:
-                print("❌ יותר מדי ניסיונות כושלים, הסקריפט נעצר.")
+                print("יותר מדי ניסיונות כושלים, הסקריפט נעצר.")
                 return False
             print(f"מנסה שוב ({retries}/{max_retries})...")
             time.sleep(1)
@@ -250,9 +249,9 @@ def move_to_target(drone, target_lat, target_lon):
     try:
         drone.move(0.0, 0.0, 0.0, 0.0)
     except ConnectionAbortedError as e:
-        print(f"⚠️ שגיאת חיבור בעת עצירה: {e}")
+        print(f"שגיאת חיבור בעת עצירה: {e}")
         return False
-    print(f"✅ עצר במרחק {distance*100000:.2f} מטר מהיעד")
+    print(f"עצר במרחק {distance*100000:.2f} מטר מהיעד")
     return True
 
 # שמירת נתונים, גרפים וסטטיסטיקות עם תיקונים
@@ -273,7 +272,7 @@ def save_flight_data():
     # בדיקת אורכים והתראה אם יש אי התאמה
     lengths = [len(times), len(altitudes), len(distances), len(yaws)]
     if len(set(lengths)) > 1:
-        print(f"⚠️ אזהרה: אורכי מערכי הנתונים שונים: {lengths}")
+        print(f"אזהרה: אורכי מערכי הנתונים שונים: {lengths}")
 
     # יצירת ושמירת גרפים
     plt.rcParams['font.family'] = 'DejaVu Sans'
@@ -306,7 +305,7 @@ def save_flight_data():
     plt.close()
     print(f"גרפים נשמרו ב: {plot_file}")
 
-    # חישוב ושמירת סטטיסטיקות
+# חישוב ושמירת סטטיסטיקות
     min_length = min(len(altitudes), len(distances))
     stats = {
         "זמן להגעה (שניות)": times[-1] if times else 0,
@@ -329,7 +328,7 @@ def main():
     drone = connect_and_takeoff()
     if drone:
         if not altitude_control_with_pid(drone, target_altitude=2.0):
-            print("❌ נכשל בהמראה, הסקריפט נעצר.")
+            print("נכשל בהמראה, הסקריפט נעצר.")
             drone.land(True)
             time.sleep(5)
             drone.__exit__(None, None, None)
@@ -337,9 +336,9 @@ def main():
         
         time.sleep(2)
         if abs(current_data["altitude"] - 2.0) > 0.1:
-            print(f"⚠️ גובה לא יציב ({current_data['altitude']:.2f} מטר), ממשיך להתאם...")
+            print(f"גובה לא יציב ({current_data['altitude']:.2f} מטר), ממשיך להתאם...")
             if not altitude_control_with_pid(drone, target_altitude=2.0):
-                print("❌ נכשל בהתאמה, הסקריפט נעצר.")
+                print("נכשל בהתאמה, הסקריפט נעצר.")
                 drone.land(True)
                 time.sleep(5)
                 drone.__exit__(None, None, None)
@@ -347,43 +346,43 @@ def main():
 
         bearing = calculate_bearing(current_data["latitude"], current_data["longitude"], 
                                    TARGET_LAT, TARGET_LON)
-        print(f"📐 זווית ליעד: {bearing:.2f} מעלות")
+        print(f"זווית ליעד: {bearing:.2f} מעלות")
 
         if not rotate_to_target(drone, bearing):
-            print("❌ נכשל בסיבוב, הסקריפט נעצר.")
+            print("נכשל בסיבוב, הסקריפט נעצר.")
             drone.land(True)
             time.sleep(5)
             drone.__exit__(None, None, None)
             return
 
         if not move_to_target(drone, TARGET_LAT, TARGET_LON):
-            print("❌ נכשל בתנועה ליעד, הסקריפט נעצר.")
+            print("נכשל בתנועה ליעד, הסקריפט נעצר.")
             drone.land(True)
             time.sleep(5)
             drone.__exit__(None, None, None)
             return
 
-        print("⬇️ יורד לגובה 1 מטר")
+        print("יורד לגובה 1 מטר")
         if not altitude_control_with_pid(drone, target_altitude=1.0):
-            print("❌ נכשל בירידה לגובה 1 מטר, הסקריפט נעצר.")
+            print("נכשל בירידה לגובה 1 מטר, הסקריפט נעצר.")
             drone.land(True)
             time.sleep(5)
             drone.__exit__(None, None, None)
             return
 
-        print("⏸ עצירה בגובה 1 מטר לפני נחיתה")
+        print("עצירה בגובה 1 מטר לפני נחיתה")
         time.sleep(5)
 
-        print("🛬 נוחת...")
+        print("נוחת...")
         try:
             drone.land(True)
         except ConnectionAbortedError as e:
-            print(f"⚠️ שגיאת חיבור בעת נחיתה: {e}")
+            print(f"שגיאת חיבור בעת נחיתה: {e}")
         time.sleep(5)
         drone.unlisten(OpenDJI.MODULE_FLIGHTCONTROLLER, "AircraftLocation3D")
         drone.unlisten(OpenDJI.MODULE_FLIGHTCONTROLLER, "CompassHeading")
         drone.__exit__(None, None, None)
-        print("🔌 נותק מהרחפן")
+        print("נותק מהרחפן")
 
         # שמירת הנתונים בסיום הטיסה
         save_flight_data()
