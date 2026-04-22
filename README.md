@@ -2,7 +2,10 @@ Autonomous Drone Navigation
 
 A Python script designed to control a DJI Mini 3 Pro using the OpenDJI library. The script performs an autonomous task where the drone takes off, navigates to a predefined target location using GPS coordinates, stabilizes at a specific altitude, and then lands. Below is a detailed documentation of what the code does, broken down into sections:
 
-Overview • Purpose: The script autonomously controls a drone to take off, stabilize at 2 meters altitude, rotate toward a target location, move to that location, descend to 1 meter, and then land. • Libraries Used: time, cv2 (though not used in this script), numpy, math, re, and OpenDJI (a custom library for DJI drone control). • Key Features: o PID (Proportional-Integral-Derivative) control for altitude stabilization. o GPS-based navigation to a target latitude and longitude. o Yaw (compass heading) adjustment to face the target. o Error handling and timeouts for safety.
+Overview: 
+The goal of this project is to develop an autonomous navigation system for a drone carrying a small package. The drone must take off, stabilize at a cruising altitude of 2 meters, rotate towards a predefined location, navigate to the target while correcting the angle due to disturbances such as wind, descend to 1 meter, and wait for the package to be collected. The system uses a python code, OpenDJI  Library which enables to control the drone via PC, drone’s current GPS coordinates, a PID controller to ensure stable flight at cruising altitude and a control command to correct the angle to ensure precise navigation.
+<img width="18749" height="158" alt="image" src="https://github.com/user-attachments/assets/75ef01c0-9119-4b53-9548-6bffbe7241a4" />
+ • Libraries Used: time, cv2 (though not used in this script), numpy, math, re, and OpenDJI (a custom library for DJI drone control). • Key Features:  PID (Proportional-Integral-Derivative) control for altitude stabilization. GPS-based navigation to a target latitude and longitude.  Yaw (compass heading) adjustment to face the target. Error handling and timeouts for safety.
 
 
 
